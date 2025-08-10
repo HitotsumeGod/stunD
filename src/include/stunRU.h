@@ -22,12 +22,15 @@
 #define STUN_TYPE_ERROR_CODE		(word) 0x0009
 #define STUN_TYPE_XOR_MAPPED_ADDR	(word) 0x0020
 
+#define STUN_MSG_ID_LEN			(byte) 3
+#define STUN_ADDR_IPV6_LEN		(byte) 4
+
 struct stun_msg 
 {
 	word type;
 	word length;
 	dword magic;
-	dword id[3];
+	dword id[STUN_MSG_ID_LEN];
 	struct stun_attrib
 	{
 	 word type;
@@ -42,7 +45,7 @@ struct stun_msg
 	   union stun_addr
 	   {
 	    dword ipv4;
-	    qword ipv6[2];
+	    dword ipv6[STUN_ADDR_IPV6_LEN];
 	   } address;
 	  } maddr;
 	 } value;
@@ -55,8 +58,8 @@ struct stun_msg
 extern const char *stunservers[];
 extern const char *stunports[];
 
-extern bool send_stun(socket_t socket, struct stun_msg *message, byte index);
+extern bool send_stun(byte family, socket_t socket, struct stun_msg *message, byte index);
 extern struct stun_msg *recv_stun(socket_t socket, byte index);
-extern struct sockaddr_in *stun_bind_query(void);
+extern struct sockaddr_storage *stun_bind_query(byte family);
 
 #endif //__STUNRU_H__
