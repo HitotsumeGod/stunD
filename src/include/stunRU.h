@@ -13,6 +13,9 @@
 #define STUN_BIND_REQ			(word) 0x0001
 #define STUN_BIND_RESP			(word) 0x0101
 #define STUN_MAGIC_COOKIE		(dword) 0x2112A442
+#define STUN_FAMILY_IPV4		(byte) 0x01
+#define STUN_FAMILY_IPV6		(byte) 0x02
+
 #define STUN_TYPE_MAPPED_ADDR		(word) 0x0001
 #define STUN_TYPE_USERNAME		(word) 0x0006
 #define STUN_TYPE_MESSAGE_INTEGRITY	(word) 0x0008
@@ -25,23 +28,23 @@ struct stun_msg
 	word length;
 	dword magic;
 	dword id[3];
-	struct stun_attrib 
+	struct stun_attrib
 	{
 	 word type;
 	 word length;
-	 union stun_attrib_val 
+	 union stun_attrib_val
 	 {
-	  struct stun_mapped_addr 
+	  struct stun_mapped_addr
 	  {
 	   byte reserved;
 	   byte family;
 	   word port;
-	   union stun_addr 
+	   union stun_addr
 	   {
 	    dword ipv4;
-	    qword ipv6[2];	
+	    qword ipv6[2];
 	   } address;
-	  } maddr;	
+	  } maddr;
 	 } value;
 	} attribute;
 };

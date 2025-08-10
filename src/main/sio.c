@@ -75,7 +75,7 @@ struct stun_msg *recv_stun(socket_t sock, byte ind)
 	msg -> length = (buf[place++] << 8) | buf[place++];
 	for (int i = 0; i < sizeof(dword); i++)
 		msg -> magic = (msg -> magic << 8) | buf[place++];
-	for (int i = 0; i < sizeof(msg -> id); i++)
+	for (int i = 0; i < 3; i++)
 		for (int ii = 0; ii < sizeof(dword); ii++)
 			msg -> id[i] = (msg -> id[i] << 8) | buf[place++];
 	msg -> attribute.type = (buf[place++] << 8) | buf[place++];
@@ -83,11 +83,12 @@ struct stun_msg *recv_stun(socket_t sock, byte ind)
 	switch (msg -> attribute.type) {
 	case STUN_TYPE_MAPPED_ADDR:
 	case STUN_TYPE_XOR_MAPPED_ADDR:
+		msg -> stun_bind.reserved = buf[place++];
 		msg -> stun_bind.family = buf[place++];
 		msg -> stun_bind.port = (buf[place++] << 8) | buf[place++];
-		if (msg -> stun_bind.family == AF_INET)
+		if (msg -> stun_bind.family == STUN_FAMILY_IPV4)
 			for (int i = 0; i < sizeof(dword); i++)
-				msg -> stun_addr.ipv4 = (msg -> stun_addr.ipv4 << 8) | buf[i];
+				msg -> stun_addr.ipv4 = (msg -> stun_addr.ipv4 << 8) | buf[place++];
 		break;
 	}
 	return msg;
