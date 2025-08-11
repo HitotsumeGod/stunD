@@ -73,21 +73,26 @@ struct stun_msg *recv_stun(socket_t sock)
 		return NULL;
 	}
 	place = 0;
-	msg -> type = (buf[place++] << 8) | buf[place++];
-	msg -> length = (buf[place++] << 8) | buf[place++];
+	msg -> type = (buf[place] << 8) | buf[place + 1];
+	place += 2;
+	msg -> length = (buf[place] << 8) | buf[place + 1];
+	place += 2;
 	for (int i = 0; i < sizeof(dword); i++)
 		msg -> magic = (msg -> magic << 8) | buf[place++];
 	for (int i = 0; i < STUN_MSG_ID_LEN; i++)
 		for (int ii = 0; ii < sizeof(dword); ii++)
 			msg -> id[i] = (msg -> id[i] << 8) | buf[place++];
-	msg -> attribute.type = (buf[place++] << 8) | buf[place++];
-	msg -> attribute.length = (buf[place++] << 8) | buf[place++];
+	msg -> attribute.type = (buf[place] << 8) | buf[place + 1];
+	place += 2;
+	msg -> attribute.length = (buf[place] << 8) | buf[place + 1];
+	place += 2;
 	switch (msg -> attribute.type) {
 	case STUN_TYPE_MAPPED_ADDR:
 	case STUN_TYPE_XOR_MAPPED_ADDR:
 		msg -> stun_bind.reserved = buf[place++];
 		msg -> stun_bind.family = buf[place++];
-		msg -> stun_bind.port = (buf[place++] << 8) | buf[place++];
+		msg -> stun_bind.port = (buf[place] << 8) | buf[place + 1];
+		place += 2;
 		if (msg -> stun_bind.family == STUN_FAMILY_IPV4)
 			for (int i = 0; i < sizeof(dword); i++)
 				msg -> stun_addr.ipv4 = (msg -> stun_addr.ipv4 << 8) | buf[place++];

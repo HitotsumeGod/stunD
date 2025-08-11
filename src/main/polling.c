@@ -10,10 +10,9 @@ bool poll_stun_servers(int af, int amou)
 {
 	struct sockaddr_storage **cargo, **dummy;
 	struct sockaddr_in *skai;
-	struct sockaddr_in6 *skai6;
 	socket_t sock;
 	size_t cargolen;
-	char addrbuf[INET_ADDRSTRLEN], sixbuf[INET6_ADDRSTRLEN];
+	char addrbuf[INET_ADDRSTRLEN];
 	int dead = 0, count = 0;
 
 	if (amou < 0) {
@@ -70,10 +69,9 @@ bool poll_stun_servers_by_name(int af, struct stun_server **servs)
 {
 	struct sockaddr_storage **cargo, **dummy;
 	struct sockaddr_in *skai;
-	struct sockaddr_in6 *skai6;
 	socket_t sock;
 	size_t cargolen;
-	char addrbuf[INET_ADDRSTRLEN], sixbuf[INET6_ADDRSTRLEN];
+	char addrbuf[INET_ADDRSTRLEN];
 	int dead = 0, count = 0;
 
 	if (!servs) {

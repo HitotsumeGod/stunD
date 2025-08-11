@@ -14,7 +14,6 @@ struct sockaddr_storage *stun_bind_query(int af, socket_t sock, struct stun_serv
 	struct sockaddr_in *skai;
 	struct sockaddr_in6 *skai6;
 	struct stun_msg *msg, *res;
-	char addrbuf[INET_ADDRSTRLEN];
 	bool sockset;
 
 	sockset = false;
