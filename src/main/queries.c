@@ -7,32 +7,54 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include "stunRU.h"
+#include "stunD.h"
 
-struct sockaddr_in *stun_bind_query(void)
+struct sockaddr_storage *stun_bind_query(int af, socket_t sock, struct stun_server *serv)
 {
-	struct stun_msg msg, *res;
-	socket_t sock;
-	char addrbuf[INET_ADDRSTRLEN];
+	struct sockaddr_in *skai;
+	struct sockaddr_in6 *skai6;
+	struct stun_msg *msg, *res;
+	bool sockset;
 
-	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-		perror("socket() error");
+	sockset = false;
+	if (sock <= 0) {
+		sockset = true;
+		if (af == AF_INET) {
+			if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+				perror("socket() error");
+				return NULL;
+			}
+		} else if (af == AF_INET6) {
+			if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) == -1) {
+				perror("socket() error");
+				return NULL;
+			}
+		} else {
+			errno = BAD_ARGS_ERR;
+			PRINT_CERR("stun_bind_query()");
+			return NULL;
+		}
+	}
+	if ((msg = malloc(sizeof(struct stun_msg))) == NULL) {
+		perror("malloc() error");
 		return NULL;
 	}
-	msg.type = htons(STUN_BIND_REQ);
-	msg.length = 0x0000;
-	msg.magic = htonl(STUN_MAGIC_COOKIE);
-	if (getrandom(msg.id, sizeof(msg.id), 0) == -1) {
+	memset(msg, 0, sizeof(struct stun_msg));
+	msg -> type = htons(STUN_BIND_REQ);
+	msg -> length = 0x0000;
+	msg -> magic = htonl(STUN_MAGIC_COOKIE);
+	if (getrandom(msg -> id, 3, 0) == -1) {
 		perror("getrandom() error");
 		return NULL;
 	}
-	if (!send_stun(sock, &msg, 0)) {
+	if (!send_stun(af, sock, msg, serv)) {
 		return NULL;
 	}
-	if ((res = recv_stun(sock, 0)) == NULL) {
+	if ((res = recv_stun(sock)) == NULL) {
 		return NULL;
 	}
-	close(sock);
+	if (sockset)
+		close(sock);
 	if (res -> type != STUN_BIND_RESP) {
 		fprintf(stderr, "Improper STUN type\n");
 		return NULL;
@@ -41,21 +63,49 @@ struct sockaddr_in *stun_bind_query(void)
 		fprintf(stderr, "Improper STUN cookie");
 		return NULL;
 	}
-	for (int i = 0; i < 3; i++)
-		if (ntohl(res -> id[i]) != msg.id[i]) {
+	for (int i = 0; i < STUN_MSG_ID_LEN; i++)
+		if (ntohl(res -> id[i]) != msg -> id[i]) {
 			fprintf(stderr, "Improper STUN id\n");
 			return NULL;
 		}
 	switch (res -> attribute.type) {
 	case STUN_TYPE_MAPPED_ADDR:
-		printf("Transport Address : %s:%d\n", inet_ntop(AF_INET, (struct in_addr *) &(res -> stun_addr.ipv4), addrbuf, sizeof(addrbuf)), res -> stun_bind.port);
-		break;
 	case STUN_TYPE_XOR_MAPPED_ADDR:
-		res -> stun_bind.port ^= (STUN_MAGIC_COOKIE >> 16);
-		res -> stun_addr.ipv4 ^= STUN_MAGIC_COOKIE;
-		dword temp = htonl(res -> stun_addr.ipv4);
-		printf("Transport Address : %s:%d\n", inet_ntop(AF_INET, (struct in_addr *) &temp, addrbuf, sizeof(addrbuf)), res -> stun_bind.port);
+		if (res -> stun_bind.family == STUN_FAMILY_IPV4) {
+			if (res -> attribute.type == STUN_TYPE_XOR_MAPPED_ADDR) {
+				res -> stun_bind.port ^= (STUN_MAGIC_COOKIE >> 16);
+				res -> stun_addr.ipv4 ^= STUN_MAGIC_COOKIE;
+			}
+			if ((skai = malloc(sizeof(struct sockaddr_in))) == NULL) {
+				perror("malloc() error");
+				return NULL;
+			}
+			skai -> sin_family = AF_INET;
+			memcpy(&skai -> sin_port, &res -> stun_bind.port, sizeof(word));
+			memcpy(&skai -> sin_addr, &res -> stun_addr.ipv4, sizeof(dword));
+			free(msg);
+			free(res);
+			return (struct sockaddr_storage *) skai;
+		}
+		if (res -> stun_bind.family == STUN_FAMILY_IPV6) {
+			if (res -> attribute.type == STUN_TYPE_XOR_MAPPED_ADDR) {
+				res -> stun_bind.port ^= (STUN_MAGIC_COOKIE >> 16);
+				res -> stun_addr.ipv6[0] ^= STUN_MAGIC_COOKIE;
+				for (int i = 1; i <= 3; i++)
+					res -> stun_addr.ipv6[i] ^= msg -> id[i];
+			}
+			if ((skai6 = malloc(sizeof(struct sockaddr_in6))) == NULL) {
+				perror("malloc() error");
+				return NULL;
+			}
+			skai6 -> sin6_family = AF_INET6;
+			memcpy(&skai6 -> sin6_port, &res -> stun_bind.port, sizeof(word));
+			memcpy(&skai6 -> sin6_addr, &res -> stun_addr.ipv6, sizeof(dword) * 4);
+			free(msg);
+			free(res);
+			return (struct sockaddr_storage *) skai6;
+		}
+		break;
 	}
-	free(res);
 	return NULL;
 }

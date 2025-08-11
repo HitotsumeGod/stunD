@@ -3,8 +3,8 @@
  * STUN Attribute types as defined by IANA
  */
 
-#ifndef __STUNRU_H__
-#define __STUNRU_H__
+#ifndef __STUND_H__
+#define __STUND_H__
 
 #include <netinet/in.h>
 #include "std/ptools.h"
@@ -22,12 +22,15 @@
 #define STUN_TYPE_ERROR_CODE		(word) 0x0009
 #define STUN_TYPE_XOR_MAPPED_ADDR	(word) 0x0020
 
+#define STUN_MSG_ID_LEN			(byte) 3
+#define STUN_ADDR_IPV6_LEN		(byte) 4
+
 struct stun_msg 
 {
 	word type;
 	word length;
 	dword magic;
-	dword id[3];
+	dword id[STUN_MSG_ID_LEN];
 	struct stun_attrib
 	{
 	 word type;
@@ -42,7 +45,7 @@ struct stun_msg
 	   union stun_addr
 	   {
 	    dword ipv4;
-	    qword ipv6[2];
+	    dword ipv6[STUN_ADDR_IPV6_LEN];
 	   } address;
 	  } maddr;
 	 } value;
@@ -52,11 +55,18 @@ struct stun_msg
 #define stun_bind attribute.value.maddr
 #define stun_addr attribute.value.maddr.address
 
-extern const char *stunservers[];
-extern const char *stunports[];
+struct stun_server {
+	char *name;
+	char *port;
+};
 
-extern bool send_stun(socket_t socket, struct stun_msg *message, byte index);
-extern struct stun_msg *recv_stun(socket_t socket, byte index);
-extern struct sockaddr_in *stun_bind_query(void);
+extern struct stun_server sservers[];
+extern const int num_sservers;
 
-#endif //__STUNRU_H__
+extern bool send_stun(int family, socket_t socket, struct stun_msg *message, struct stun_server *serv);
+extern struct stun_msg *recv_stun(socket_t socket);
+extern struct sockaddr_storage *stun_bind_query(int family, socket_t socket, struct stun_server *serv);
+extern bool poll_stun_servers(int family, int amount);
+extern bool poll_stun_servers_by_name(int family, struct stun_server *servs[]);
+
+#endif //__STUND_H__
