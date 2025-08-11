@@ -13,7 +13,7 @@ struct sockaddr_storage *stun_bind_query(int af, socket_t sock, struct stun_serv
 {
 	struct sockaddr_in *skai;
 	struct sockaddr_in6 *skai6;
-	struct stun_msg msg, *res;
+	struct stun_msg *msg, *res;
 	char addrbuf[INET_ADDRSTRLEN];
 	bool sockset;
 
@@ -36,14 +36,19 @@ struct sockaddr_storage *stun_bind_query(int af, socket_t sock, struct stun_serv
 			return NULL;
 		}
 	}
-	msg.type = htons(STUN_BIND_REQ);
-	msg.length = 0x0000;
-	msg.magic = htonl(STUN_MAGIC_COOKIE);
-	if (getrandom(msg.id, 3, 0) == -1) {
+	if ((msg = malloc(sizeof(struct stun_msg))) == NULL) {
+		perror("malloc() error");
+		return NULL;
+	}
+	memset(msg, 0, sizeof(struct stun_msg));
+	msg -> type = htons(STUN_BIND_REQ);
+	msg -> length = 0x0000;
+	msg -> magic = htonl(STUN_MAGIC_COOKIE);
+	if (getrandom(msg -> id, 3, 0) == -1) {
 		perror("getrandom() error");
 		return NULL;
 	}
-	if (!send_stun(af, sock, &msg, serv)) {
+	if (!send_stun(af, sock, msg, serv)) {
 		return NULL;
 	}
 	if ((res = recv_stun(sock)) == NULL) {
@@ -60,7 +65,7 @@ struct sockaddr_storage *stun_bind_query(int af, socket_t sock, struct stun_serv
 		return NULL;
 	}
 	for (int i = 0; i < STUN_MSG_ID_LEN; i++)
-		if (ntohl(res -> id[i]) != msg.id[i]) {
+		if (ntohl(res -> id[i]) != msg -> id[i]) {
 			fprintf(stderr, "Improper STUN id\n");
 			return NULL;
 		}
@@ -79,6 +84,7 @@ struct sockaddr_storage *stun_bind_query(int af, socket_t sock, struct stun_serv
 			skai -> sin_family = AF_INET;
 			memcpy(&skai -> sin_port, &res -> stun_bind.port, sizeof(word));
 			memcpy(&skai -> sin_addr, &res -> stun_addr.ipv4, sizeof(dword));
+			free(msg);
 			free(res);
 			return (struct sockaddr_storage *) skai;
 		}
@@ -87,7 +93,7 @@ struct sockaddr_storage *stun_bind_query(int af, socket_t sock, struct stun_serv
 				res -> stun_bind.port ^= (STUN_MAGIC_COOKIE >> 16);
 				res -> stun_addr.ipv6[0] ^= STUN_MAGIC_COOKIE;
 				for (int i = 1; i <= 3; i++)
-					res -> stun_addr.ipv6[i] ^= msg.id[i];
+					res -> stun_addr.ipv6[i] ^= msg -> id[i];
 			}
 			if ((skai6 = malloc(sizeof(struct sockaddr_in6))) == NULL) {
 				perror("malloc() error");
@@ -96,6 +102,7 @@ struct sockaddr_storage *stun_bind_query(int af, socket_t sock, struct stun_serv
 			skai6 -> sin6_family = AF_INET6;
 			memcpy(&skai6 -> sin6_port, &res -> stun_bind.port, sizeof(word));
 			memcpy(&skai6 -> sin6_addr, &res -> stun_addr.ipv6, sizeof(dword) * 4);
+			free(msg);
 			free(res);
 			return (struct sockaddr_storage *) skai6;
 		}

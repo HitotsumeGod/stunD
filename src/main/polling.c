@@ -112,16 +112,16 @@ bool poll_stun_servers_by_name(int af, struct stun_server **servs)
 			++dead;
 		++count;
 	}
-	count++;
-	fprintf(stderr, "%d dead servers...\n", dead);
 	for (int i = 0; i < count; i++)
 		if (af == AF_INET) {
 			if ((skai = (struct sockaddr_in *) cargo[i]) == NULL)
 				continue;
 			skai -> sin_addr.s_addr = htonl(skai -> sin_addr.s_addr);
-			printf("Transport Address : %s:%d\n", inet_ntop(skai -> sin_family, &skai -> sin_addr, addrbuf, sizeof(addrbuf)), skai -> sin_port);
+			printf("%s ---> Transport Address : %s:%d\n", servs[i] -> name, inet_ntop(skai -> sin_family, &skai -> sin_addr, addrbuf, sizeof(addrbuf)), skai -> sin_port);
 			free(skai);
 		}
+	if (dead > 0)
+		fprintf(stderr, "%d dead servers...\n", dead);
 	free(cargo);
 	return true;
 }
