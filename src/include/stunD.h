@@ -3,8 +3,8 @@
  * STUN Attribute types as defined by IANA
  */
 
-#ifndef __STUNRU_H__
-#define __STUNRU_H__
+#ifndef __STUND_H__
+#define __STUND_H__
 
 #include <netinet/in.h>
 #include "std/ptools.h"
@@ -55,11 +55,18 @@ struct stun_msg
 #define stun_bind attribute.value.maddr
 #define stun_addr attribute.value.maddr.address
 
-extern const char *stunservers[];
-extern const char *stunports[];
+struct stun_server {
+	char *name;
+	char *port;
+};
 
-extern bool send_stun(byte family, socket_t socket, struct stun_msg *message, byte index);
-extern struct stun_msg *recv_stun(socket_t socket, byte index);
-extern struct sockaddr_storage *stun_bind_query(byte family);
+extern struct stun_server sservers[];
+extern const int num_sservers;
 
-#endif //__STUNRU_H__
+extern bool send_stun(int family, socket_t socket, struct stun_msg *message, struct stun_server *serv);
+extern struct stun_msg *recv_stun(socket_t socket);
+extern struct sockaddr_storage *stun_bind_query(int family, socket_t socket, struct stun_server *serv);
+extern bool poll_stun_servers(int family, int amount);
+extern bool poll_stun_servers_by_name(int family, struct stun_server *servs[]);
+
+#endif //__STUND_H__

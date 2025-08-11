@@ -7,30 +7,34 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include "stunRU.h"
+#include "stunD.h"
 
-struct sockaddr_storage *stun_bind_query(byte af)
+struct sockaddr_storage *stun_bind_query(int af, socket_t sock, struct stun_server *serv)
 {
 	struct sockaddr_in *skai;
 	struct sockaddr_in6 *skai6;
 	struct stun_msg msg, *res;
-	socket_t sock;
 	char addrbuf[INET_ADDRSTRLEN];
+	bool sockset;
 
-	if (af == AF_INET) {
-		if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-			perror("socket() error");
+	sockset = false;
+	if (sock <= 0) {
+		sockset = true;
+		if (af == AF_INET) {
+			if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+				perror("socket() error");
+				return NULL;
+			}
+		} else if (af == AF_INET6) {
+			if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) == -1) {
+				perror("socket() error");
+				return NULL;
+			}
+		} else {
+			errno = BAD_ARGS_ERR;
+			PRINT_CERR("stun_bind_query()");
 			return NULL;
 		}
-	} else if (af == AF_INET6) {
-		if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) == -1) {
-			perror("socket() error");
-			return NULL;
-		}
-	} else {
-		errno = BAD_ARGS_ERR;
-		PRINT_CERR("stun_bind_query()");
-		return NULL;
 	}
 	msg.type = htons(STUN_BIND_REQ);
 	msg.length = 0x0000;
@@ -39,13 +43,14 @@ struct sockaddr_storage *stun_bind_query(byte af)
 		perror("getrandom() error");
 		return NULL;
 	}
-	if (!send_stun(af, sock, &msg, 0)) {
+	if (!send_stun(af, sock, &msg, serv)) {
 		return NULL;
 	}
-	if ((res = recv_stun(sock, 0)) == NULL) {
+	if ((res = recv_stun(sock)) == NULL) {
 		return NULL;
 	}
-	close(sock);
+	if (sockset)
+		close(sock);
 	if (res -> type != STUN_BIND_RESP) {
 		fprintf(stderr, "Improper STUN type\n");
 		return NULL;

@@ -7,10 +7,10 @@ INC=src/include
 BUILD=build
 
 $(BUILD)/pilot: $(SRC)/*.c $(INC)/*.h $(BUILD)
-	$(CC) -o $@ $(SRC)/*.c -I $(INC)
+	$(CC) -g -o $@ $(SRC)/*.c -I $(INC)
 $(BUILD)/pilotg: $(SRC)/*.c $(INC)/*.h $(BUILD)
 	$(CC) -g -o $@ $(SRC)/*.c -I $(INC)
-debug: $(BUILD)/pilotg
+debug: $(BUILD)/pilot
 	$(DBG) --leak-check=full --show-leak-kinds=all --track-origins=yes -s $^ -all
 dump: $(BUILD)/pilot
 	$(DIS) -d $<
@@ -20,6 +20,7 @@ bdump: $(BUILD)/pilot
 	$(X) -b $<
 clean:
 	rm -rf $(BUILD)
+	rm -rf vgcore*
 $(BUILD):
 	if [ ! -d $@ ]; then	\
 		mkdir $@;	\

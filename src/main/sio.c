@@ -7,30 +7,24 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netdb.h>
-#include "stunRU.h"
+#include "stunD.h"
 
-const char *stunservers[] = {
-	"stun.l.google.com",
-	"stun1.l.google.com",
-	"stun2.l.google.com",
-	"stun3.l.google.com",
-	"stun4.l.google.com"
+struct stun_server sservers[] = {
+	{ "stun.l.google.com",  "19302" },
+	{ "stun1.l.google.com", "3478"  },
+	{ "stun2.l.google.com", "19302" },
+	{ "stun3.l.google.com", "3478"  },
+	{ "stun4.l.google.com", "19302" }
 };
 
-const char *stunports[] = {
-	"19302",
-	"3478",
-	"19302",
-	"3478",
-	"19302"
-};
+const int num_sservers = 5;
 
-bool send_stun(byte af, socket_t sock, struct stun_msg *msg, byte ind)
+bool send_stun(int af, socket_t sock, struct stun_msg *msg, struct stun_server *serv)
 {
 	struct addrinfo sai, *spai;
 	int errcode;
 
-	if (!msg || sock <= 0 || ind >= sizeof(stunservers)) {
+	if (!msg || !serv || sock <= 0) {
 		errno = BAD_ARGS_ERR;
 		PRINT_CERR("send_stun()");
 		return false;
@@ -46,7 +40,7 @@ bool send_stun(byte af, socket_t sock, struct stun_msg *msg, byte ind)
 		return false;
 	}
 	sai.ai_socktype = SOCK_DGRAM;
-	if ((errcode = getaddrinfo(stunservers[ind], stunports[ind], &sai, &spai)) != 0) {
+	if ((errcode = getaddrinfo(serv -> name, serv -> port, &sai, &spai)) != 0) {
 		fprintf(stderr, "getaddrinfo() error : %s\n", gai_strerror(errcode));
 		return false;
 	}
@@ -58,13 +52,13 @@ bool send_stun(byte af, socket_t sock, struct stun_msg *msg, byte ind)
 	return true;
 }
 
-struct stun_msg *recv_stun(socket_t sock, byte ind)
+struct stun_msg *recv_stun(socket_t sock)
 {
 	struct stun_msg *msg;
 	byte buf[120];
 	int place;
 
-	if (sock <= 0 || ind >= sizeof(stunservers)) {
+	if (sock <= 0) {
 		errno = BAD_ARGS_ERR;
 		PRINT_CERR("recv_stun()");
 		return NULL;
