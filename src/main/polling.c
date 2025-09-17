@@ -1,17 +1,19 @@
+#include "stunD.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "stunD.h"
 
-bool poll_stun_servers(int af, int amou)
+struct errep *poll_stun_servers(int af, int amou)
 {
-        struct errmsg *msg;
+        struct errep *err;
+        char *fnname = "poll_stun_servers()";
 	struct sockaddr_storage **cargo, **dummy;
 	struct sockaddr_in *skai;
 	struct addrinfo sai, *spai;
@@ -21,40 +23,38 @@ bool poll_stun_servers(int af, int amou)
 	int dead = 0, count = 0, errcode;
 
 	if (amou < 0) {
-                msg = malloc(sizeof(struct errmsg));
-		msg -> errcode.common_err = COMMON_BADARGS_ERR;
-                msg -> errcode.project_err = NULL;
-                msg -> function_name = "poll_stun_servers()";
-		return false;
+                FILL_ERREP(err, fnname, "amount argument was less than zero");
+                return err;
 	} else if (amou == 0 || amou > num_sservers)
 		amou = num_sservers;
 	memset(&sai, 0, sizeof(sai));
 	if ((cargo = malloc(sizeof(struct sockaddr_storage *) * (cargolen = 2))) == NULL) {
-		perror("malloc() error");
-		return false;
+                FILL_ERREP(err, fnname, "cargo could not be allocated memory");
+                return err;
 	}
 	sai.ai_family = af;
 	sai.ai_socktype = SOCK_DGRAM;
 	sai.ai_protocol = IPPROTO_UDP;
 	sai.ai_flags = AI_PASSIVE;
 	if ((errcode = getaddrinfo(NULL, STUN_CLIENT_BINDPORT, &sai, &spai)) != 0) {
-		fprintf(stderr, "getaddrinfo() error : %s\n", gai_strerror(errcode));
-		return false;
+                char *temp = gai_strerror(errcode);
+                FILL_ERREP(err, fnname, temp);
+                return err;
 	}
 	if ((sock = socket(spai -> ai_family, spai -> ai_socktype, spai -> ai_protocol)) == -1) {
-		perror("socket() error");
-		return false;
+                FILL_ERREP(err, fnname, "socket could not be created");
+                return err;
 	}
 	if (bind(sock, spai -> ai_addr, spai -> ai_addrlen) == -1) {
-		perror("bind() error");
-		return false;
+                FILL_ERREP(err, fnname, "socket could not be bound to local address");
+                return err;
 	}
 	freeaddrinfo(spai);
 	for (; count < amou; count++) {
 		if (count == cargolen) {
 			if ((dummy = realloc(cargo, sizeof(struct sockaddr_storage *) * (cargolen *= 2))) == NULL) {
-				perror("realloc() error");
-				return false;
+                                FILL_ERREP(err, fnname, "resizing with realloc() could not be completed");
+                                return err;
 			}
 			cargo = dummy;
 		}
@@ -75,11 +75,14 @@ bool poll_stun_servers(int af, int amou)
 		printf("1 dead server...\n");
 	close(sock);
 	free(cargo);
-	return true;
+        FILL_ERREP(err, fnname, NULL);
+	return err;
 }
 
-bool poll_stun_servers_by_name(int af, struct stun_server **servs)
+struct errep *poll_stun_servers_by_name(int af, struct stun_server **servs)
 {
+        struct errep *err;
+        char *fnname = "poll_stun_servers_by_name()";
 	struct sockaddr_storage **cargo, **dummy;
 	struct sockaddr_in *skai;
 	struct addrinfo sai, *spai;
@@ -89,37 +92,37 @@ bool poll_stun_servers_by_name(int af, struct stun_server **servs)
 	int dead = 0, count = 0, errcode;
 
 	if (!servs) {
-		errno = BAD_ARGS_ERR;
-		PRINT_CERR("poll_stun_servers_by_name()");
-		return false;
+                FILL_ERREP(err, fnname, "stun_server array passed as NULL");
+                return err;
 	}
 	memset(&sai, 0, sizeof(sai));
 	if ((cargo = malloc(sizeof(struct sockaddr_storage *) * (cargolen = 2))) == NULL) {
-		perror("malloc() error");
-		return false;
+                FILL_ERREP(err, fnname, "cargo could not be allocated memory");
+                return err;
 	}
 	sai.ai_family = af;
 	sai.ai_socktype = SOCK_DGRAM;
 	sai.ai_protocol = IPPROTO_UDP;
 	sai.ai_flags = AI_PASSIVE;
 	if ((errcode = getaddrinfo(NULL, STUN_CLIENT_BINDPORT, &sai, &spai)) != 0) {
-		fprintf(stderr, "getaddrinfo() error : %s\n", gai_strerror(errcode));
-		return false;
+                char *temp = gai_strerror(errcode);
+                FILL_ERREP(err, fnname, temp);
+                return err;
 	}
 	if ((sock = socket(spai -> ai_family, spai -> ai_socktype, spai -> ai_protocol)) == -1) {
-		perror("socket() error");
-		return false;
+                FILL_ERREP(err, fnname, "socket could not be created");
+                return err;
 	}
 	if (bind(sock, spai -> ai_addr, spai -> ai_addrlen) == -1) {
-		perror("bind() error");
-		return false;
+                FILL_ERREP(err, fnname, "socket could not be bound to local address");
+                return err;
 	}
 	freeaddrinfo(spai);
 	while (servs[count]) {
 		if (count == cargolen) {
 			if ((dummy = realloc(cargo, sizeof(struct sockaddr_storage *) * (cargolen *= 2))) == NULL) {
-				perror("realloc() error");
-				return false;
+                                FILL_ERREP(err, fnname, "resizing with realloc() could not be completed");
+                                return err;
 			}
 			cargo = dummy;
 		}
@@ -141,11 +144,14 @@ bool poll_stun_servers_by_name(int af, struct stun_server **servs)
 		printf("1 dead server...\n");
 	close(sock);
 	free(cargo);
-	return true;
+        FILL_ERREP(err, fnname, NULL);
+	return err;
 }
 
-bool poll_recv_test(char *host)
+struct errep *poll_recv_test(char *host)
 {
+        struct errep *err, *start;
+        char *fnname = "poll_recv_test";
 	struct sockaddr_in *skai;
 	struct addrinfo sai, *spai;
 	socket_t sock;
@@ -161,47 +167,52 @@ bool poll_recv_test(char *host)
 	sai.ai_protocol = IPPROTO_UDP;
 	sai.ai_flags = AI_PASSIVE;
 	if ((errcode = getaddrinfo(NULL, STUN_CLIENT_BINDPORT, &sai, &spai)) != 0) {
-		fprintf(stderr, "getaddrinfo() error : %s\n", gai_strerror(errcode));
-		return false;
+                char *temp = gai_strerror(errcode);
+                FILL_ERREP(err, fnname, temp);
+                return err;
 	}
 	if ((sock = socket(spai -> ai_family, spai -> ai_socktype, spai -> ai_protocol)) == -1) {
-		perror("socket() error");
-		return false;
+                FILL_ERREP(err, fnname, "socket could not be created");
+                return err;
 	}
 	int val = 1;
 	if (setsockopt(sock, SOL_SOCKET, IP_MTU_DISCOVER, &val, sizeof(val)) == -1) {
-		perror("setsockopt() error");
-		return false;
+                FILL_ERREP(err, fnname, "socket nonblocking option could not be set");
+                return err;
 	}
 	if (bind(sock, spai -> ai_addr, spai -> ai_addrlen) == -1) {
-		perror("bind() error");
-		return false;
+                FILL_ERREP(err, fnname, "socket could not be bound to local address");
+                return err;
 	}
 	freeaddrinfo(spai);
-	if ((skai = (struct sockaddr_in *) stun_bind_query(AF_INET, sock, sservers)) == NULL)
-		return false;
+	if ((err = stun_bind_query(AF_INET, sock, sservers, (struct sockaddr_storage *) skai)) -> msg != NULL) {
+                FILL_ERREP(err -> next, fnname, "unable to receive results of a stun_bind_query()");
+                return err;
+        }
 	skai -> sin_addr.s_addr = htonl(skai -> sin_addr.s_addr);
 	printf("%s --> Transport Address : %s:%d\n", sservers[0].name, inet_ntop(skai -> sin_family, &skai -> sin_addr, addrbuf, sizeof(addrbuf)), skai -> sin_port);
 	if ((errcode = getaddrinfo(host, "7447", &sai, &spai)) != 0) {
-		fprintf(stderr, "getaddrinfo() error : %s\n", gai_strerror(errcode));
-		return false;
+                char *temp = gai_strerror(errcode);
+                FILL_ERREP(err, fnname, temp);
+                return err;
 	}
 	for (int i = 0; i < 100; i++)
 		if (sendto(sock, pmsg, strlen(pmsg), 0, spai -> ai_addr, spai -> ai_addrlen) == -1) {
-			perror("sendto() error");
-			return false;
+                        FILL_ERREP(err, fnname, "failed to send a holepuncher datagram");
+                        return err;
 		}
 	freeaddrinfo(spai);
 	if ((siz = recvfrom(sock, recvbuf, sizeof(recvbuf), 0, NULL, NULL)) == -1) {
-		perror("recvfrom() error");
-		return false;
+                FILL_ERREP(err, fnname, "failed to recover from exterior host");
+                return err;
 	}
 	if ((dump = fopen("packet.cap", "wb")) == NULL) {
-		perror("fopen() error");
-		return false;
+                FILL_ERREP(err, fnname, "failed to open packet dump file");
+                return err;
 	}
 	fwrite(recvbuf, siz, 1, dump);
 	fclose(dump);
 	close(sock);
-	return true;
+        FILL_ERREP(err, fnname, NULL);
+	return err;
 }

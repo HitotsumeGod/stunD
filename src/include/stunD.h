@@ -30,10 +30,6 @@ typedef int socket_t;
 #define STUN_CLIENT_BINDPORT		"1665"
 #define TRIP_CLIENT_BINDPORT		"1998"
 
-struct stunD_error {
-        
-}
-
 struct stun_msg 
 {
 	word type;
@@ -72,12 +68,11 @@ struct stun_server {
 extern struct stun_server sservers[];
 extern const int num_sservers;
 
-extern char *stunD_handle_error(void *errorcode);
-extern bool send_stun(int family, socket_t socket, struct stun_msg *message, struct stun_server *serv);
-extern struct stun_msg *recv_stun(socket_t socket);
-extern struct sockaddr_storage *stun_bind_query(int family, socket_t socket, struct stun_server *serv);
-extern bool poll_stun_servers(int family, int amount);
-extern bool poll_stun_servers_by_name(int family, struct stun_server *servs[]);
-extern bool poll_recv_test(char *hostname);
+extern struct errep *send_stun(int family, socket_t socket, struct stun_msg *message, struct stun_server *serv);
+extern struct errep *recv_stun(socket_t socket, struct stun_msg *results);
+extern struct errep *stun_bind_query(int family, socket_t socket, struct stun_server *serv, struct sockaddr_storage *results);
+extern struct errep *poll_stun_servers(int family, int amount);
+extern struct errep *poll_stun_servers_by_name(int family, struct stun_server *servs[]);
+extern struct errep *poll_recv_test(char *hostname);
 
 #endif //__STUND_H__
