@@ -6,8 +6,11 @@
 #ifndef __STUND_H__
 #define __STUND_H__
 
+#include "ptools.h"
+#include <stdbool.h>
 #include <netinet/in.h>
-#include "std/ptools.h"
+
+typedef int socket_t;
 
 #define STUN_HDRLEN			(byte) 20
 #define STUN_BIND_REQ			(word) 0x0001
@@ -26,6 +29,10 @@
 #define STUN_ADDR_IPV6_LEN		(byte) 4
 #define STUN_CLIENT_BINDPORT		"1665"
 #define TRIP_CLIENT_BINDPORT		"1998"
+
+struct stunD_error {
+        
+}
 
 struct stun_msg 
 {
@@ -65,6 +72,7 @@ struct stun_server {
 extern struct stun_server sservers[];
 extern const int num_sservers;
 
+extern char *stunD_handle_error(void *errorcode);
 extern bool send_stun(int family, socket_t socket, struct stun_msg *message, struct stun_server *serv);
 extern struct stun_msg *recv_stun(socket_t socket);
 extern struct sockaddr_storage *stun_bind_query(int family, socket_t socket, struct stun_server *serv);

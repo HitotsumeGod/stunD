@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -10,6 +11,7 @@
 
 bool poll_stun_servers(int af, int amou)
 {
+        struct errmsg *msg;
 	struct sockaddr_storage **cargo, **dummy;
 	struct sockaddr_in *skai;
 	struct addrinfo sai, *spai;
@@ -19,8 +21,10 @@ bool poll_stun_servers(int af, int amou)
 	int dead = 0, count = 0, errcode;
 
 	if (amou < 0) {
-		errno = BAD_ARGS_ERR;
-		PRINT_CERR("poll_stun_servers");
+                msg = malloc(sizeof(struct errmsg));
+		msg -> errcode.common_err = COMMON_BADARGS_ERR;
+                msg -> errcode.project_err = NULL;
+                msg -> function_name = "poll_stun_servers()";
 		return false;
 	} else if (amou == 0 || amou > num_sservers)
 		amou = num_sservers;
