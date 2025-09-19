@@ -58,7 +58,7 @@ struct errep *poll_stun_servers(int af, int amou)
                         }
                         cargo = dummy;
                 }
-                if ((err = stun_bind_query(af, sock, sservers + count, cargo[count])) -> msg == NULL) {
+                if ((err = stun_bind_query(af, sock, sservers + count, cargo + count)) -> msg != NULL) {
                         free(err);
                         ++dead;
                 }
@@ -128,7 +128,7 @@ struct errep *poll_stun_servers_by_name(int af, struct stun_server **servs)
                         }
                         cargo = dummy;
                 }
-                if ((err = stun_bind_query(af, sock, servs[count], cargo[count])) -> msg == NULL) {
+                if ((err = stun_bind_query(af, sock, servs[count], cargo + count)) -> msg != NULL) {
                         free(err);
                         ++dead;
                 }
@@ -189,7 +189,7 @@ struct errep *poll_recv_test(char *host)
                 return err;
         }
         freeaddrinfo(spai);
-        if ((err = stun_bind_query(AF_INET, sock, sservers, (struct sockaddr_storage *) skai)) -> msg != NULL) {
+        if ((err = stun_bind_query(AF_INET, sock, sservers, (struct sockaddr_storage **) &skai)) -> msg != NULL) {
                 ERREP(err -> next, fnname, "unable to receive results of a stun_bind_query()");
                 return err;
         }

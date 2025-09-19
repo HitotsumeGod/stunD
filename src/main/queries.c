@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include "stunD.h"
 
-struct errep *stun_bind_query(int af, socket_t sock, struct stun_server *serv, struct sockaddr_storage *result)
+struct errep *stun_bind_query(int af, socket_t sock, struct stun_server *serv, struct sockaddr_storage **result)
 {
         struct errep *err;
         char *fnname = "stun_bind_query()";
@@ -52,7 +52,7 @@ struct errep *stun_bind_query(int af, socket_t sock, struct stun_server *serv, s
                 ERREP(err -> next, fnname, "failure to send stun message");
                 return err;
         }
-        if ((err = recv_stun(sock, res)) -> msg != NULL) {
+        if ((err = recv_stun(sock, &res)) -> msg != NULL) {
                 ERREP(err -> next, fnname, "failure to receive stun reply");
                 return err;
         }
@@ -88,7 +88,7 @@ struct errep *stun_bind_query(int af, socket_t sock, struct stun_server *serv, s
                         memcpy(&skai -> sin_addr, &res -> stun_addr.ipv4, sizeof(dword));
                         free(msg);
                         free(res);
-                        result = (struct sockaddr_storage *) skai;
+                        *result = (struct sockaddr_storage *) skai;
                 } else if (res -> stun_bind.family == STUN_FAMILY_IPV6) {
                         if (res -> attribute.type == STUN_TYPE_XOR_MAPPED_ADDR) {
                                 res -> stun_bind.port ^= (STUN_MAGIC_COOKIE >> 16);
@@ -105,10 +105,10 @@ struct errep *stun_bind_query(int af, socket_t sock, struct stun_server *serv, s
                         memcpy(&skai6 -> sin6_addr, &res -> stun_addr.ipv6, sizeof(dword) * 4);
                         free(msg);
                         free(res);
-                        result = (struct sockaddr_storage *) skai6;
+                        *result = (struct sockaddr_storage *) skai6;
                 }
         default:
-                result = NULL;
+                *result = NULL;
         }
         ERREP(err, fnname, NULL);
         return err;

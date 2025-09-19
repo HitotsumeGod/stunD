@@ -55,7 +55,7 @@ struct errep *send_stun(int af, socket_t sock, struct stun_msg *msg, struct stun
         return err;
 }
 
-struct errep *recv_stun(socket_t sock, struct stun_msg *res)
+struct errep *recv_stun(socket_t sock, struct stun_msg **res)
 {
         struct errep *err;
         char *fnname = "recv_stun()";
@@ -106,7 +106,7 @@ struct errep *recv_stun(socket_t sock, struct stun_msg *res)
 			          msg -> stun_addr.ipv6[i] = (msg -> stun_addr.ipv6[i] << 8) | buf[place++];
                 break;
         }
-        res = msg;
+        *res = msg;
         ERREP(err, fnname, NULL);
         return err;
 }
