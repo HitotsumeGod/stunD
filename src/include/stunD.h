@@ -24,6 +24,8 @@
 
 #define STUN_MSG_ID_LEN			(byte) 3
 #define STUN_ADDR_IPV6_LEN		(byte) 4
+#define STUN_CLIENT_BINDPORT		"1665"
+#define TRIP_CLIENT_BINDPORT		"1998"
 
 struct stun_msg 
 {
@@ -60,6 +62,13 @@ struct stun_server {
 	char *port;
 };
 
+enum trip_res {
+	HARD_NAT 	= 1,
+	NO_FW 		= 2,
+	NORM_FW		= 3,
+	HARD_FW		= 4
+};
+
 extern struct stun_server sservers[];
 extern const int num_sservers;
 
@@ -68,5 +77,7 @@ extern struct stun_msg *recv_stun(socket_t socket);
 extern struct sockaddr_storage *stun_bind_query(int family, socket_t socket, struct stun_server *serv);
 extern bool poll_stun_servers(int family, int amount);
 extern bool poll_stun_servers_by_name(int family, struct stun_server *servs[]);
+extern int poll_stun_roundtrip(int family);
+extern bool poll_recv_test(void);
 
 #endif //__STUND_H__
