@@ -2,7 +2,7 @@
 #include <string.h>
 #include "stunD.h"
 
-const char *usage = "usage:\n   stunD\n   stunD <num_servers>\n   stunD -names <SERVNAME:SERVPORT> ...\n   stunD -trip\n   stunD -test\n   stunD -help (this)\n";
+const char *usage = "usage:\n   stunD\n   stunD <num_servers>\n   stunD -names <SERVNAME:SERVPORT> ...\n   stunD -trip\n   stunD -test <hostname>\n   stunD -help (this)\n";
 
 int main(int argc, char *argv[])
 {
@@ -50,25 +50,8 @@ int main(int argc, char *argv[])
 			}
 			free(servs);
 		}
-	} else if (strcmp(argv[1], "-trip") == 0) {
-		switch (poll_stun_roundtrip(AF_INET)) {
-		case HARD_NAT:
-			printf("%s\n", "NAT maps based on destination; cannot perform roundtrip.");
-			break;
-		case NO_FW:
-			printf("%s\n", "Roundtrip completed; firewall is either extremely lightweight or nonexistent.");
-			break;
-		case NORM_FW:
-			printf("%s\n", "Roundtrip completed; firewall behavior was normal.");
-			break;
-		case HARD_FW:
-			printf("%s\n", "Roundtrip not completed; firewall could not be penetrated.");
-			break;
-		default:
-			printf("%s\n", "ERROR");
-		}
-	} else if (strcmp(argv[1], "-test") == 0) {
-		if (!poll_recv_test())
+	} else if (strcmp(argv[1], "-test") == 0 && argc == 3) {
+		if (!poll_recv_test(argv[2]))
 			return false;
 	} else if (strcmp(argv[1], "-help") == 0) { 
 		printf("\n%s\n", usage);
